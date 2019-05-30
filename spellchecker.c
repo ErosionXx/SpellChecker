@@ -3,8 +3,9 @@
 #include <string.h> 
 #include <stdbool.h> 
 #include <ctype.h>
-
-  
+#include <time.h>
+ 
+long mem = 0;
  // Trie node data structure
 struct TrieNode 
 { 
@@ -21,7 +22,7 @@ struct TrieNode *createEmptyNode(void)
     struct TrieNode *node = NULL; 
   
     node = (struct TrieNode *)malloc(sizeof(struct TrieNode)); 
-  
+  	mem += sizeof(struct TrieNode);
     if (node) 
     { 
     	// set default values
@@ -80,11 +81,13 @@ bool searchWord(struct TrieNode *root, char *word)
 }
 
 
-int main()
+int main(int argc, char **argv)
 {
 	// create root node
 	struct TrieNode *root = createEmptyNode();
+	double time_spent = 0.0;
 
+	clock_t begin = clock();
 	// open dictionary file
 	static const char filename[] = "dictionary.txt";
 	FILE *file = fopen ( filename, "r" );
@@ -92,7 +95,7 @@ int main()
 	{
 		printf("Loading dictionary...\n");
 
-		char line[128];
+		char line[1000];
 		while ( fgets ( line, sizeof line, file ) != NULL )
 		{
 			// convert to lower case and insert to tree
@@ -106,17 +109,34 @@ int main()
 		printf("Successfully loaded dictionary...\n");
 
 		// ask user to type a word and check if in tree
+		char *text_file = *(argv + 1);
 		char keyword[100];
-		while(true){
-			printf("Type a word to search: \n");
-			scanf("%s", keyword);
-			for(int k = 0; keyword[k]; k++){
-			  	keyword[k] = tolower(keyword[k]);
-			}
-			if(searchWord(root, keyword)){
-				printf("Spelling is correct.\n");
-			}else{
-				printf("Word not found in dictionary, Maybe spelling is wrong.\n");
+		int m = 0;
+		int num = 1;
+		FILE *file_text = fopen ( text_file, "r" );
+		if ( file_text != NULL ){
+			printf("Miss spelled words:\n");
+			while ( fgets ( line, sizeof line, file ) != NULL )
+			{
+				// convert to lower case and insert to tree
+				strtok(line, "\n");
+
+				for(int k = 0; line[k]; k++){
+
+					if(tolower(line[k]) > 'z' || tolower(line[k]) < 'a'){
+						keyword[m] = '\0';
+						// check word
+						if(strlen(keyword) && !searchWord(root, keyword)){
+							printf("On line %d: %s.\n", num, keyword);
+						}
+						m = 0;
+					}else{
+				  		keyword[m] = tolower(line[k]);
+				  		m++;
+					}
+				}
+				num++;
+				
 			}
 		}
 
@@ -128,7 +148,12 @@ int main()
 	  return 0;
 	}
 
-		
+  	printf("Memory usage: %ld\n", mem);
+  	clock_t end = clock();
+
+	time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+
+	printf("Runtime %f\n", time_spent);
 
 	return 0;
 }
